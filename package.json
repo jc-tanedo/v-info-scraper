@@ -12,6 +12,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "devDependencies": {
+    "@types/axios": "^0.14.0",
     "@types/jsdom": "^16.2.13",
     "@types/lodash": "^4.14.176",
     "@types/node": "^16.11.6",

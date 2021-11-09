@@ -6,7 +6,7 @@ import _ from 'lodash';
 import superagent from 'superagent';
 import { VaccineInfo } from './@types/index.d';
 import config from './config';
-import { csvWriter, csvWriterNew, getNewWriter, generateUrl, parseVaxInfo, range } from './utils';
+import { csvWriter, getNewWriter, generateUrl, parseVaxInfo, range } from './utils';
 
 const FILE_PATH = `${__dirname}/${config.FILE_NAME}`;
 
@@ -16,11 +16,13 @@ async function readExisting(): Promise<VaccineInfo[]> {
         const records = parse(fileContent, { columns: true });
         return records;
     } catch (e) {
-        if (e instanceof Error && 'code' in e && e['code'] === 'ENOENT') {
+        if (e instanceof Error && 'code' in e && (e as { code: string; }).code === 'ENOENT') {
             return [];
         }
         console.error(e);
         process.exit(1);
+    } finally {
+        return [];
     }
 }
 
@@ -85,6 +87,8 @@ async function fetchAndSave(current: number, existingVaxIds: string[], batchWork
         console.log(`Processing for vaxId ${current} failed`);
         console.error(e);
         process.exit();
+    } finally {
+        return null;
     }
 }
 
@@ -121,7 +125,7 @@ async function main() {
                 }
 
                 console.log(`Processing vaxId batch ${currentBatch[0]} - ${currentBatch[currentBatch.length - 1]}`);
-                const results = await Promise.all(currentBatch.map(c => existingVaxIds.includes(c.toString()) ? null : fetchVaxInfo(c)));
+                const results = await Promise.all(currentBatch.map(c => existingVaxIds.includes(c.toString()) ? Promise.resolve(null) : fetchVaxInfo(c)));
                 const filteredResults = results.filter(v => !!v && (config.SAVE_EMPTY || v.firstName)) as VaccineInfo[];
 
                 if (filteredResults.length > 0) {

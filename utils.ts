@@ -25,7 +25,8 @@ export const getNewWriter = (append = true) => createObjectCsvWriter({
 });
 
 export function getTextBySelector(dom: JSDOM, selector: VaccineField, prefix = '#'): string {
-    return dom.window.document.querySelector(`${prefix}${selector}`)?.textContent || '';
+    const element = dom.window.document.querySelector(`${prefix}${selector}`);
+    return element ? element.textContent || '' : '';
 }
 
 export function generateUrl(vaxId: number): string {
