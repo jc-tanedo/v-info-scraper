@@ -2,7 +2,7 @@ import axios from 'axios';
 import parse from 'csv-parse/lib/sync';
 import { promises as fs } from 'fs';
 import { JSDOM } from 'jsdom';
-import _ from 'lodash';
+import _, { filter } from 'lodash';
 import superagent from 'superagent';
 import { VaccineInfo } from './@types/index.d';
 import config from './config';
@@ -103,7 +103,7 @@ async function checkAlive(): Promise<boolean> {
 }
 
 async function main() {
-    let existing = (await readExisting()).filter(e => e.firstName);
+    let existing = (await readExisting()).filter(e => !config.REFETCH_EMPTY || e.firstName);
     let existingVaxIds = existing.map(e => e.vaxId);
 
     let current = config.STARTING_VACCINE_ID;
@@ -141,8 +141,11 @@ async function main() {
                         await saveRecords(existing, false);
                     }
                     console.log('Success!\n\n');
-                    current += config.CONCURRENT;
-                    continue;
+
+                    if (_.some(filteredResults, r => r.firstName)) {
+                        current += config.CONCURRENT;
+                        continue;
+                    }
                 }
 
                 if (emptyCounter < config.CONSECUTIVE_EMPTY_BATCHES_BEFORE_CHECK_ALIVE) {
