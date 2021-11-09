@@ -11,18 +11,19 @@ import { csvWriter, getNewWriter, generateUrl, parseVaxInfo, range } from './uti
 const FILE_PATH = `${__dirname}/${config.FILE_NAME}`;
 
 async function readExisting(): Promise<VaccineInfo[]> {
+    let records;
     try {
         const fileContent = await fs.readFile(FILE_PATH);
-        const records = parse(fileContent, { columns: true });
-        return records;
+        records = parse(fileContent, { columns: true });
     } catch (e) {
         if (e instanceof Error && 'code' in e && (e as { code: string; }).code === 'ENOENT') {
-            return [];
+            records = [];
+        } else {
+            console.error(e);
+            process.exit(1);
         }
-        console.error(e);
-        process.exit(1);
     } finally {
-        return [];
+        return records;
     }
 }
 
@@ -41,11 +42,11 @@ async function doRequest(vaxId: number): Promise<string> {
     return htmlText;
 }
 
-async function fetchVaxInfo(vaxId: number): Promise<VaccineInfo> {
+async function fetchVaxInfo(vaxId: number, timeout = config.FETCH_TIMEOUT): Promise<VaccineInfo> {
     const domStringPromise = doRequest(vaxId);
     const domString = await Promise.race([
         domStringPromise,
-        new Promise(resolve => setTimeout(() => resolve(''), config.FETCH_TIMEOUT)),
+        new Promise(resolve => setTimeout(() => resolve(''), timeout)),
     ]) as string;
 
     return parseVaxInfo(vaxId, new JSDOM(domString));
@@ -94,7 +95,7 @@ async function fetchAndSave(current: number, existingVaxIds: string[], batchWork
 
 async function checkAlive(): Promise<boolean> {
     console.log('Too many empty sets, checking if server is reachable');
-    const firstV = await fetchVaxInfo(1);
+    const firstV = await fetchVaxInfo(1, config.CHECKALIVE_TIMEOUT);
     if (firstV.firstName) {
         console.log('All good!');
     }
@@ -118,13 +119,13 @@ async function main() {
         } else {
             try {
                 const currentBatch = range(current, current + config.CONCURRENT);
+                console.log(`Processing vaxId batch ${currentBatch[0]} - ${currentBatch[currentBatch.length - 1]}`);
                 if (_.every(currentBatch, c => existingVaxIds.includes(c.toString()))) {
                     console.log(`All items in vaxId batch ${currentBatch[0]} - ${currentBatch[currentBatch.length - 1]} already exist`);
                     current += config.CONCURRENT;
                     continue;
                 }
 
-                console.log(`Processing vaxId batch ${currentBatch[0]} - ${currentBatch[currentBatch.length - 1]}`);
                 const results = await Promise.all(currentBatch.map(c => existingVaxIds.includes(c.toString()) ? Promise.resolve(null) : fetchVaxInfo(c)));
                 const filteredResults = results.filter(v => !!v && (config.SAVE_EMPTY || v.firstName)) as VaccineInfo[];
 
