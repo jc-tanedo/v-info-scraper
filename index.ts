@@ -156,8 +156,8 @@ async function main() {
                 if (await checkAlive()) {
                     current += config.CONCURRENT;
                 } else {
-                    const rollbackCount = (config.CONSECUTIVE_EMPTY_BATCHES_BEFORE_CHECK_ALIVE - 1) * config.CONCURRENT
-                    current -= rollbackCount;
+                    const rollbackCount = config.CONSECUTIVE_EMPTY_BATCHES_BEFORE_CHECK_ALIVE * config.CONCURRENT
+                    current -= rollbackCount - config.CONCURRENT;
                     await new Promise(resolve => {
                         console.log(`Server seems down, sleeping and retrying last ${rollbackCount} items...`);
                         setTimeout(resolve, 60_000);
