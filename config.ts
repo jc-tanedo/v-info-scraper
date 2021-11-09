@@ -15,7 +15,7 @@ export default {
         { id: 'secondDoseAt', title: 'secondDoseAt' },
         { id: 'vaccineBrand', title: 'vaccineBrand' },
     ],
-    DRYRUN: true,
+    DRYRUN: false,
     FETCH_TIMEOUT: 3000,
     CHECKALIVE_TIMEOUT: 10000,
     APPEND: false,

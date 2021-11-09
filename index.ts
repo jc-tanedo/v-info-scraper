@@ -111,7 +111,7 @@ async function main() {
         current = parseInt(existingVaxIds[existingVaxIds.length - 1], 10);
     }
 
-    let emptyCounter = 0;
+    let emptyCounter = 1;
     while (true) {
         if (config.CONCURRENT === 1) {
             fetchAndSave(current, existingVaxIds);
@@ -151,12 +151,12 @@ async function main() {
                     continue;
                 }
 
-                emptyCounter = 0;
+                emptyCounter = 1;
 
                 if (await checkAlive()) {
                     current += config.CONCURRENT;
                 } else {
-                    const rollbackCount = config.CONSECUTIVE_EMPTY_BATCHES_BEFORE_CHECK_ALIVE * config.CONCURRENT
+                    const rollbackCount = (config.CONSECUTIVE_EMPTY_BATCHES_BEFORE_CHECK_ALIVE - 1) * config.CONCURRENT
                     current -= rollbackCount;
                     await new Promise(resolve => {
                         console.log(`Server seems down, sleeping and retrying last ${rollbackCount} items...`);
