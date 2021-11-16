@@ -8,6 +8,11 @@ export declare interface VaccineInfo {
     vaccineBrand?: string;
 }
 
+export declare interface Credentials {
+    username: string;
+    password: string;
+}
+
 export declare type VaccineField = 'view1_fname'
     | 'view1_mi'
     | 'view1_lname'

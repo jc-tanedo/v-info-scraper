@@ -2,11 +2,11 @@ import axios from 'axios';
 import parse from 'csv-parse/lib/sync';
 import { promises as fs } from 'fs';
 import { JSDOM } from 'jsdom';
-import _, { filter } from 'lodash';
+import _ from 'lodash';
 import superagent from 'superagent';
-import { VaccineInfo } from './@types/index.d';
+import { Credentials, VaccineInfo } from './@types/index.d';
 import config from './config';
-import { csvWriter, getNewWriter, generateUrl, parseVaxInfo, range } from './utils';
+import { csvWriter, generateUrl, getNewWriter, parseVaxInfo, range } from './utils';
 
 const FILE_PATH = `${__dirname}/${config.FILE_NAME}`;
 
@@ -27,22 +27,59 @@ async function readExisting(): Promise<VaccineInfo[]> {
     }
 }
 
-async function doRequest(vaxId: number): Promise<string> {
+async function auth(username: string, password: string): Promise<any> {
+    try {
+        const response = await axios.post(config.LOGIN_URL, {
+            'btnSubmit': 'Login',
+            username,
+            password,
+        });
+
+        const loginCookiePair = _.chain(response.headers)
+            .get('set-cookie.0')
+            .split(';')
+            .first()
+            .split('=')
+            .value();
+
+        return _.fromPairs([loginCookiePair]);
+    } catch (e) {
+        console.error(e);
+        process.exit();
+    }
+}
+
+function getRandomCredential(records: VaccineInfo[]): Credentials {
+    const sample = _.sample(records);
+    if (sample?.firstName && sample?.lastName) {
+        return {
+            username: sample.firstName,
+            password: sample.lastName,
+        };
+    }
+
+    return getRandomCredential(records);
+}
+
+async function doRequest(vaxId: number, creds: Credentials): Promise<string> {
     let response, htmlText;
+    const cookie = await auth(creds.username, creds.password);
+
     switch (config.REQUEST_CLIENT) {
         case 'axios':
-            const auth = process.env.PG_AUTH_KEY || 'mporhkvjev2qs4favn3b5k3275';
-            response = await axios.get(generateUrl(vaxId), { headers: {
-                'Host': 'pampanga.gov.ph:82',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
-                'Proxy-Authorization': 'Basic enRxZHI4aGMtcnBxdnRlYzpwM3h6NGgyeXdm',
-                'Connection': 'keep-alive',
-                'Cookie': `mediaType=0; gJhyaqwdIlSfbufTXyqc=${auth}`,
-                'Cache-Control': 'max-age=0',
-            } });
+            response = await axios.get(generateUrl(vaxId), {
+                headers: {
+                    'Host': 'pampanga.gov.ph:82',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Proxy-Authorization': 'Basic enRxZHI4aGMtcnBxdnRlYzpwM3h6NGgyeXdm',
+                    'Connection': 'keep-alive',
+                    'Cookie': `mediaType=0; gJhyaqwdIlSfbufTXyqc=${cookie.gJhyaqwdIlSfbufTXyqc}`,
+                    'Cache-Control': 'max-age=0',
+                }
+            });
             htmlText = response.data;
             break;
         default:
@@ -53,8 +90,8 @@ async function doRequest(vaxId: number): Promise<string> {
     return htmlText;
 }
 
-async function fetchVaxInfo(vaxId: number, timeout = config.FETCH_TIMEOUT): Promise<VaccineInfo> {
-    const domStringPromise = doRequest(vaxId);
+async function fetchVaxInfo(vaxId: number, timeout = config.FETCH_TIMEOUT, creds: Credentials): Promise<VaccineInfo> {
+    const domStringPromise = doRequest(vaxId, creds);
     const domString = await Promise.race([
         domStringPromise,
         new Promise(resolve => setTimeout(() => resolve(''), timeout)),
@@ -77,7 +114,7 @@ async function saveRecords(records: VaccineInfo[], append = true) {
     }
 }
 
-async function fetchAndSave(current: number, existingVaxIds: string[], batchWorker = false): Promise<VaccineInfo | null> {
+async function fetchAndSave(current: number, existingVaxIds: string[], batchWorker = false, creds: Credentials): Promise<VaccineInfo | null> {
     !batchWorker && console.log(`Processing vaxId ${current}`);
     if (existingVaxIds.includes(current.toString())) {
         !batchWorker && console.log(`vaxId ${current} already exists`);
@@ -85,7 +122,7 @@ async function fetchAndSave(current: number, existingVaxIds: string[], batchWork
     }
 
     try {
-        const result = await fetchVaxInfo(current);
+        const result = await fetchVaxInfo(current, undefined, creds);
         if (batchWorker) {
             return result;
         }
@@ -106,7 +143,8 @@ async function fetchAndSave(current: number, existingVaxIds: string[], batchWork
 
 async function checkAlive(): Promise<boolean> {
     console.log('Too many empty sets, checking if server is reachable');
-    const firstV = await fetchVaxInfo(1, config.CHECKALIVE_TIMEOUT);
+    const creds = await auth('ROMEO', 'ALCANTARA');
+    const firstV = await fetchVaxInfo(1, config.CHECKALIVE_TIMEOUT, creds);
     if (firstV.firstName) {
         console.log('All good!');
     }
@@ -125,7 +163,8 @@ async function main() {
     let emptyCounter = 1;
     while (true) {
         if (config.CONCURRENT === 1) {
-            fetchAndSave(current, existingVaxIds);
+            const creds = getRandomCredential(existing);
+            fetchAndSave(current, existingVaxIds, false, creds);
             current += 1;
         } else {
             try {
@@ -137,7 +176,8 @@ async function main() {
                     continue;
                 }
 
-                const results = await Promise.all(currentBatch.map(c => existingVaxIds.includes(c.toString()) ? Promise.resolve(null) : fetchVaxInfo(c)));
+                const creds = getRandomCredential(existing);
+                const results = await Promise.all(currentBatch.map(c => existingVaxIds.includes(c.toString()) ? Promise.resolve(null) : fetchVaxInfo(c, undefined, creds)));
                 const filteredResults = results.filter(v => !!v && (config.SAVE_EMPTY || v.firstName)) as VaccineInfo[];
 
                 if (filteredResults.length > 0) {
