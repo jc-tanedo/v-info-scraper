@@ -4,7 +4,7 @@ export default {
     CONSECUTIVE_EMPTY_BATCHES_BEFORE_CHECK_ALIVE: 4,
     RESUME_FROM_LAST_RECORDED: true,
     FILE_NAME: 'results.csv',
-    REQUEST_CLIENT: 'superagent',
+    REQUEST_CLIENT: 'axios',
     VAX_INFO_URL: 'http://119.92.115.50:82/vimsp/patient_detail_view.php',
     FIELDS: [
         { id: 'vaxId', title: 'vaxId' },

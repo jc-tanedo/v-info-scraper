@@ -31,7 +31,17 @@ async function doRequest(vaxId: number): Promise<string> {
     let response, htmlText;
     switch (config.REQUEST_CLIENT) {
         case 'axios':
-            response = await axios.get(generateUrl(vaxId));
+            response = await axios.get(generateUrl(vaxId), { headers: {
+                'Host': 'pampanga.gov.ph:82',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Proxy-Authorization': 'Basic enRxZHI4aGMtcnBxdnRlYzpwM3h6NGgyeXdm',
+                'Connection': 'keep-alive',
+                'Cookie': 'mediaType=0; gJhyaqwdIlSfbufTXyqc=7igq2q3qjgn1veq3lqh589j8tf',
+                'Cache-Control': 'max-age=0',
+            } });
             htmlText = response.data;
             break;
         default:
