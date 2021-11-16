@@ -31,6 +31,7 @@ async function doRequest(vaxId: number): Promise<string> {
     let response, htmlText;
     switch (config.REQUEST_CLIENT) {
         case 'axios':
+            const auth = process.env.PG_AUTH_KEY || 'mporhkvjev2qs4favn3b5k3275';
             response = await axios.get(generateUrl(vaxId), { headers: {
                 'Host': 'pampanga.gov.ph:82',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0',
@@ -39,7 +40,7 @@ async function doRequest(vaxId: number): Promise<string> {
                 'Accept-Encoding': 'gzip, deflate',
                 'Proxy-Authorization': 'Basic enRxZHI4aGMtcnBxdnRlYzpwM3h6NGgyeXdm',
                 'Connection': 'keep-alive',
-                'Cookie': 'mediaType=0; gJhyaqwdIlSfbufTXyqc=7igq2q3qjgn1veq3lqh589j8tf',
+                'Cookie': `mediaType=0; gJhyaqwdIlSfbufTXyqc=${auth}`,
                 'Cache-Control': 'max-age=0',
             } });
             htmlText = response.data;
