@@ -77,6 +77,12 @@ async function main() {
                 console.log(`Skipping ${current}: already exists`);
             } else {
                 console.log(`Processing vaxId ${current}`);
+
+                if (config.PUPPETEER_ROTATE_CREDENTIALS_INTERVAL % current === 0) {
+                    await puppet.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
+                    await loginCurrentPage(puppet, getRandomCredential(existing));
+                }
+
                 await puppet.goto(generateUrl(current), { waitUntil: 'domcontentloaded' });
                 if (await puppet.$('#username')) {
                     await loginCurrentPage(puppet, getRandomCredential(existing));
