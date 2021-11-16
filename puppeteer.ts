@@ -5,7 +5,7 @@ import config from './config';
 import { generateUrl, getRandomCredential, readExisting, saveRecords } from './utils';
 
 async function getBrowser(): Promise<puppeteer.Browser> {
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch();
     return browser;
 }
 
