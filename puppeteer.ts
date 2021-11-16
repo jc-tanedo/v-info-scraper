@@ -33,7 +33,7 @@ async function getTextFromPage(page: puppeteer.Page, selector: string): Promise<
 
 async function parseVaxInfo(vaxId: number, page: puppeteer.Page): Promise<VaccineInfo> {
     try {
-        await page.waitForSelector('#view1_fname', { timeout: 1000 });
+        await page.waitForSelector('#view1_fname', { timeout: config.PUPPETEER_DOM_TIMEOUT });
         return {
             vaxId: vaxId.toString(),
             firstName: await getTextFromPage(page, '#view1_fname'),

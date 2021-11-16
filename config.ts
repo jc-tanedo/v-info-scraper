@@ -22,4 +22,6 @@ export default {
     APPEND: false,
     SAVE_EMPTY: true,
     REFETCH_EMPTY: false,
+
+    PUPPETEER_DOM_TIMEOUT: 200,
 };
