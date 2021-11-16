@@ -23,5 +23,7 @@ export default {
     SAVE_EMPTY: true,
     REFETCH_EMPTY: false,
 
+    PUPPETEER_IGNORE_ERRORS: true,
+    PUPPETEER_SLEEP_ON_ERROR: 10 * 60 * 1000,
     PUPPETEER_DOM_TIMEOUT: 200,
 };

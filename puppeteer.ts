@@ -68,8 +68,8 @@ async function main() {
     const browser = await getBrowser();
     let puppet = await browser.newPage();
 
-    try {
-        while (true) {
+    while (true) {
+        try {
             const currentExistsAndEmpty = _.some(existing, e => e.vaxId === current.toString() && !e.firstName);
             const shouldRefetch = config.REFETCH_EMPTY && currentExistsAndEmpty;
 
@@ -94,12 +94,17 @@ async function main() {
             }
 
             current += 1;
+        } catch (e) {
+            console.error(e);
+            if (config.PUPPETEER_IGNORE_ERRORS) {
+                console.log('Retrying after sleep...');
+                await new Promise(resolve => setTimeout(resolve, config.PUPPETEER_SLEEP_ON_ERROR));
+            } else {
+                await puppet.close();
+                await browser.close();
+                process.exit();
+            }
         }
-    } catch (e) {
-        console.error(e);
-        await puppet.close();
-        await browser.close();
-        process.exit();
     }
 }
 
