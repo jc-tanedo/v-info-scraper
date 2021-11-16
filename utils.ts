@@ -1,6 +1,9 @@
+import parse from 'csv-parse/lib/sync';
 import { createObjectCsvWriter } from 'csv-writer';
+import { promises as fs } from 'fs';
 import { JSDOM } from 'jsdom';
-import { VaccineField, VaccineInfo } from './@types';
+import _ from 'lodash';
+import { Credentials, VaccineField, VaccineInfo } from './@types';
 import config from './config';
 
 const { FILE_NAME, FIELDS, VAX_INFO_URL } = config;
@@ -11,6 +14,32 @@ export const csvWriter = createObjectCsvWriter({
     header: FIELDS,
     append: true,
 });
+
+export function getRandomCredential(records: VaccineInfo[]): Credentials {
+    const sample = _.sample(records);
+    if (sample?.firstName && sample?.lastName) {
+        return {
+            username: sample.firstName,
+            password: sample.lastName,
+        };
+    }
+
+    return getRandomCredential(records);
+}
+
+export async function saveRecords(records: VaccineInfo[], append = true) {
+    if (config.DRYRUN) {
+        console.log('[DRY RUN]: Saving the following', records);
+        return;
+    }
+
+    if (append) {
+        await csvWriter.writeRecords(records);
+    } else {
+        const newWriter = getNewWriter(false);
+        await newWriter.writeRecords(records);
+    }
+}
 
 export const csvWriterNew = createObjectCsvWriter({
     path: FILE_PATH,
@@ -23,6 +52,23 @@ export const getNewWriter = (append = true) => createObjectCsvWriter({
     header: FIELDS,
     append,
 });
+
+export async function readExisting(): Promise<VaccineInfo[]> {
+    let records;
+    try {
+        const fileContent = await fs.readFile(FILE_PATH);
+        records = parse(fileContent, { columns: true });
+    } catch (e) {
+        if (e instanceof Error && 'code' in e && (e as { code: string; }).code === 'ENOENT') {
+            records = [];
+        } else {
+            console.error(e);
+            process.exit(1);
+        }
+    } finally {
+        return records;
+    }
+}
 
 export function getTextBySelector(dom: JSDOM, selector: VaccineField, prefix = '#'): string {
     const element = dom.window.document.querySelector(`${prefix}${selector}`);

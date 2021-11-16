@@ -5,6 +5,7 @@
     "csv-writer": "^1.6.0",
     "jsdom": "^18.0.1",
     "lodash": "^4.17.21",
+    "puppeteer": "^11.0.0",
     "superagent": "^6.1.0",
     "ts-node": "^10.4.0"
   },
@@ -21,6 +22,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "puppet": "ts-node puppeteer.ts",
     "start": "ts-node index.ts"
   },
   "keywords": [],

@@ -1,31 +1,10 @@
 import axios from 'axios';
-import parse from 'csv-parse/lib/sync';
-import { promises as fs } from 'fs';
 import { JSDOM } from 'jsdom';
 import _ from 'lodash';
 import superagent from 'superagent';
 import { Credentials, VaccineInfo } from './@types/index.d';
 import config from './config';
-import { csvWriter, generateUrl, getNewWriter, parseVaxInfo, range } from './utils';
-
-const FILE_PATH = `${__dirname}/${config.FILE_NAME}`;
-
-async function readExisting(): Promise<VaccineInfo[]> {
-    let records;
-    try {
-        const fileContent = await fs.readFile(FILE_PATH);
-        records = parse(fileContent, { columns: true });
-    } catch (e) {
-        if (e instanceof Error && 'code' in e && (e as { code: string; }).code === 'ENOENT') {
-            records = [];
-        } else {
-            console.error(e);
-            process.exit(1);
-        }
-    } finally {
-        return records;
-    }
-}
+import { generateUrl, getRandomCredential, parseVaxInfo, range, readExisting, saveRecords } from './utils';
 
 async function auth(username: string, password: string): Promise<any> {
     try {
@@ -47,18 +26,6 @@ async function auth(username: string, password: string): Promise<any> {
         console.error(e);
         process.exit();
     }
-}
-
-function getRandomCredential(records: VaccineInfo[]): Credentials {
-    const sample = _.sample(records);
-    if (sample?.firstName && sample?.lastName) {
-        return {
-            username: sample.firstName,
-            password: sample.lastName,
-        };
-    }
-
-    return getRandomCredential(records);
 }
 
 async function doRequest(vaxId: number, creds: Credentials): Promise<string> {
@@ -98,20 +65,6 @@ async function fetchVaxInfo(vaxId: number, timeout = config.FETCH_TIMEOUT, creds
     ]) as string;
 
     return parseVaxInfo(vaxId, new JSDOM(domString));
-}
-
-async function saveRecords(records: VaccineInfo[], append = true) {
-    if (config.DRYRUN) {
-        console.log('[DRY RUN]: Saving the following', records);
-        return;
-    }
-
-    if (append) {
-        await csvWriter.writeRecords(records);
-    } else {
-        const newWriter = getNewWriter(false);
-        await newWriter.writeRecords(records);
-    }
 }
 
 async function fetchAndSave(current: number, existingVaxIds: string[], batchWorker = false, creds: Credentials): Promise<VaccineInfo | null> {
