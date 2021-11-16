@@ -5,7 +5,7 @@ import config from './config';
 import { generateUrl, getRandomCredential, readExisting, saveRecords } from './utils';
 
 async function getBrowser(): Promise<puppeteer.Browser> {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ headless: false });
     return browser;
 }
 
@@ -56,6 +56,11 @@ async function parseVaxInfo(vaxId: number, page: puppeteer.Page): Promise<Vaccin
     }
 }
 
+async function clearCookies(page: puppeteer.Page) {
+    const client = await page.target().createCDPSession()
+    await client.send('Network.clearBrowserCookies')
+}
+
 async function main() {
     let existing = (await readExisting()).filter(e => !config.REFETCH_EMPTY || e.firstName);
     let existingVaxIds = existing.map(e => e.vaxId);
@@ -78,9 +83,8 @@ async function main() {
             } else {
                 console.log(`Processing vaxId ${current}`);
 
-                if (config.PUPPETEER_ROTATE_CREDENTIALS_INTERVAL % current === 0) {
-                    await puppet.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
-                    await loginCurrentPage(puppet, getRandomCredential(existing));
+                if (current % config.PUPPETEER_ROTATE_CREDENTIALS_INTERVAL === 0) {
+                    await clearCookies(puppet);
                 }
 
                 await puppet.goto(generateUrl(current), { waitUntil: 'domcontentloaded' });
