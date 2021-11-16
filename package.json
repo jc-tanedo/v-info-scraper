@@ -23,6 +23,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "puppet": "ts-node puppeteer.ts",
+    "sort": "ts-node sort.ts",
     "start": "ts-node index.ts"
   },
   "keywords": [],
