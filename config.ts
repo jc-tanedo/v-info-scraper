@@ -1,3 +1,9 @@
+import _ from 'lodash';
+import minimist from 'minimist';
+
+let args = minimist(process.argv.slice(2)) as Record<string, any>;
+args = _.mapKeys(args, (v, k) => _.upperCase(_.snakeCase(k)));
+
 export default {
     STARTING_VACCINE_ID: 1,
     CONCURRENT: 2,
@@ -27,4 +33,6 @@ export default {
     PUPPETEER_ROTATE_CREDENTIALS_INTERVAL: 10,
     PUPPETEER_SLEEP_ON_ERROR: 10 * 60 * 1000,
     PUPPETEER_DOM_TIMEOUT: 200,
+
+    ...args,
 };
